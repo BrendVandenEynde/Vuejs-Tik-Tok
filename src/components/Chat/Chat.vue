@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { reactive } from 'vue';
 import ChatMessages from './ChatMessages.vue';
 import ChatForm from './ChatForm.vue';
 
@@ -12,7 +12,7 @@ const state = reactive({
 fetch('https://nodejsmongodbtrash-03gj.onrender.com/api/v1/messages')
     .then(response => response.json())
     .then(data => {
-        state.messages.push(...data.data.messages); // Populate with data from API
+        state.messages.push(...data.data.messages.reverse()); // Reverse to show newest first
     })
     .catch(error => {
         console.error('Error fetching messages:', error);
@@ -20,11 +20,8 @@ fetch('https://nodejsmongodbtrash-03gj.onrender.com/api/v1/messages')
 
 // Handle the event when a new message is sent from ChatForm
 function handleSendMessage(newMessage) {
-    // Log the message before sending for debugging
-    console.log('Sending message:', newMessage);
-
-    // Add the new message to the local state
-    state.messages.push(newMessage);
+    // Add the new message to the beginning of the local state (newest first)
+    state.messages.unshift(newMessage);
 
     // Send the new message to the backend (POST request)
     fetch('https://nodejsmongodbtrash-03gj.onrender.com/api/v1/messages', {
@@ -32,19 +29,19 @@ function handleSendMessage(newMessage) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: newMessage }), // Wrap newMessage in { message }
+        body: JSON.stringify({ message: newMessage }), // Adjusted for backend format
     })
-        .then(response => {
-            if (!response.ok) {
-                return response.text().then(errorData => {
-                    console.error('Server responded with error (non-JSON):', errorData);
-                    throw new Error('Failed to send message.');
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error sending message to the backend:', error);
-        });
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                console.error('Server responded with error:', errorData);
+                throw new Error('Failed to send message.');
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error sending message to the backend:', error);
+    });
 }
 </script>
 
